@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,11 +32,14 @@ export default function UploadPage() {
 
     const selectedFiles = Array.from(e.target.files || []);
     const validFiles = selectedFiles.filter(
-      (file) => file.type === "application/pdf" && file.size <= 5 * 1024 * 1024,
+      (file) => 
+        (file.type === "application/pdf" || 
+         file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") && 
+        file.size <= 5 * 1024 * 1024,
     );
 
     if (validFiles.length !== selectedFiles.length) {
-      toast.error("Only PDF files under 5MB are allowed.");
+      toast.error("Only PDF and DOCX files under 5MB are allowed.");
     }
 
     setFiles(validFiles);
@@ -90,20 +93,23 @@ export default function UploadPage() {
           >
             <div className="text-black">Drag and drop files here</div>
             <div className="text-sm text-gray-600">
-              {"(PDFs only)"}
+              {"(PDFs and DOCXs only)"}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <Card className="w-full max-w-md h-full border-0 sm:border sm:h-fit mt-12 bg-white text-black shadow-lg">
+      <Card className="w-full max-w-md h-full border-0 sm:border sm:h-fit bg-white text-black shadow-lg">
         <CardHeader className="text-center space-y-6">
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-bold">
-              Document Chat
-            </CardTitle>
+            <div className="flex items-center justify-center gap-2">
+              <MessageSquare className="h-6 w-6 text-[#0066FF]" />
+              <h1 className="text-xl font-bold bg-gradient-to-r from-[#0066FF] to-[#0052CC] bg-clip-text text-transparent">
+                Document Chat
+              </h1>
+            </div>
             <CardDescription className="text-base text-black">
-              Upload a PDF document to start chatting about its contents.
+              Upload a PDF or a Word document and ask me anything about it.
             </CardDescription>
           </div>
         </CardHeader>
@@ -115,7 +121,7 @@ export default function UploadPage() {
               <input
                 type="file"
                 onChange={handleFileChange}
-                accept="application/pdf"
+                accept=".pdf,.docx"
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
               <FileUp className="h-8 w-8 mb-2 text-muted-foreground" />
