@@ -1,52 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { experimental_useObject } from "ai/react";
-import { questionsSchema } from "@/lib/schemas";
-import { z } from "zod";
-import { toast } from "sonner";
-import { FileUp, Plus, Loader2 } from "lucide-react";
+import { FileUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import Quiz from "@/components/quiz";
-import { Link } from "@/components/ui/link";
-import NextLink from "next/link";
-import { generateQuizTitle } from "./actions";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { VercelIcon, GitIcon } from "@/components/icons";
 
-export default function ChatWithFiles() {
+export default function UploadPage() {
+  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
-  const [questions, setQuestions] = useState<z.infer<typeof questionsSchema>>(
-    [],
-  );
+  const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [title, setTitle] = useState<string>();
-
-  const {
-    submit,
-    object: partialQuestions,
-    isLoading,
-  } = experimental_useObject({
-    api: "/api/generate-quiz",
-    schema: questionsSchema,
-    initialValue: undefined,
-    onError: (error) => {
-      toast.error("Failed to generate quiz. Please try again.");
-      setFiles([]);
-    },
-    onFinish: ({ object }) => {
-      setQuestions(object ?? []);
-    },
-  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -62,7 +34,6 @@ export default function ChatWithFiles() {
     const validFiles = selectedFiles.filter(
       (file) => file.type === "application/pdf" && file.size <= 5 * 1024 * 1024,
     );
-    console.log(validFiles);
 
     if (validFiles.length !== selectedFiles.length) {
       toast.error("Only PDF files under 5MB are allowed.");
@@ -71,41 +42,25 @@ export default function ChatWithFiles() {
     setFiles(validFiles);
   };
 
-  const encodeFileAsBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleSubmitWithFiles = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const encodedFiles = await Promise.all(
-      files.map(async (file) => ({
-        name: file.name,
-        type: file.type,
-        data: await encodeFileAsBase64(file),
-      })),
-    );
-    submit({ files: encodedFiles });
-    const generatedTitle = await generateQuizTitle(encodedFiles[0].name);
-    setTitle(generatedTitle);
+    if (files.length === 0) return;
+
+    setIsLoading(true);
+    try {
+      // TODO: Add your file processing logic here
+      // For now, we'll just simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Navigate to chat page with the file name
+      const fileName = encodeURIComponent(files[0].name);
+      router.push(`/chat?file=${fileName}`);
+    } catch (error) {
+      toast.error("Failed to process the file. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const clearPDF = () => {
-    setFiles([]);
-    setQuestions([]);
-  };
-
-  const progress = partialQuestions ? (partialQuestions.length / 4) * 100 : 0;
-
-  if (questions.length === 4) {
-    return (
-      <Quiz title={title ?? "Quiz"} questions={questions} clearPDF={clearPDF} />
-    );
-  }
 
   return (
     <div
@@ -120,7 +75,6 @@ export default function ChatWithFiles() {
       onDrop={(e) => {
         e.preventDefault();
         setIsDragging(false);
-        console.log(e.dataTransfer.files);
         handleFileChange({
           target: { files: e.dataTransfer.files },
         } as React.ChangeEvent<HTMLInputElement>);
@@ -141,21 +95,22 @@ export default function ChatWithFiles() {
           </motion.div>
         )}
       </AnimatePresence>
+
       <Card className="w-full max-w-md h-full border-0 sm:border sm:h-fit mt-12 bg-white text-black shadow-lg">
         <CardHeader className="text-center space-y-6">
           <div className="space-y-2">
             <CardTitle className="text-2xl font-bold">
-              Document Wizard
+              Document Chat
             </CardTitle>
-            <CardDescription className="text-base">
-              Upload a PDF or a Word document and ask me anything about it.
+            <CardDescription className="text-base text-black">
+              Upload a PDF document to start chatting about its contents.
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmitWithFiles} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div
-              className={`relative flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 transition-colors hover:border-muted-foreground/50`}
+              className={`relative flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 transition-colors hover:border-muted-foreground/100`}
             >
               <input
                 type="file"
@@ -166,7 +121,7 @@ export default function ChatWithFiles() {
               <FileUp className="h-8 w-8 mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground text-center">
                 {files.length > 0 ? (
-                  <span className="font-medium text-foreground">
+                  <span className="font-medium text-black">
                     {files[0].name}
                   </span>
                 ) : (
@@ -176,44 +131,20 @@ export default function ChatWithFiles() {
             </div>
             <Button
               type="submit"
-              className="w-full !bg-[#1877F2] hover:!bg-[#166FE5] text-white !opacity-100 hover:!opacity-100"
-              disabled={files.length === 0}
+              className="w-full !bg-[#0066FF] hover:!bg-[#0052CC] text-white"
+              disabled={files.length === 0 || isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Processing...</span>
                 </span>
               ) : (
-                "Start the Conversation"
+                "Start Chatting"
               )}
             </Button>
           </form>
         </CardContent>
-        {isLoading && (
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="w-full space-y-1">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-            <div className="w-full space-y-2">
-              <div className="grid grid-cols-6 sm:grid-cols-4 items-center space-x-2 text-sm">
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    isLoading ? "bg-yellow-500/50 animate-pulse" : "bg-muted"
-                  }`}
-                />
-                <span className="text-muted-foreground text-center col-span-4 sm:col-span-2">
-                  {partialQuestions
-                    ? `Generating question ${partialQuestions.length + 1} of 4`
-                    : "Analyzing PDF content"}
-                </span>
-              </div>
-            </div>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
