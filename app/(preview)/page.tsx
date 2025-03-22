@@ -34,12 +34,15 @@ export default function UploadPage() {
     const validFiles = selectedFiles.filter(
       (file) => 
         (file.type === "application/pdf" || 
-         file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") && 
+         file.type === "image/png" ||
+         file.type === "image/jpeg" ||
+         file.type === "image/tiff" ||
+         file.type === "image/bmp") && 
         file.size <= 5 * 1024 * 1024,
     );
 
     if (validFiles.length !== selectedFiles.length) {
-      toast.error("Only PDF and DOCX files under 5MB are allowed.");
+      toast.error("Only PDF and image files (PNG, JPG, JPEG, TIFF, BMP) under 5MB are allowed.");
     }
 
     setFiles(validFiles);
@@ -51,15 +54,25 @@ export default function UploadPage() {
 
     setIsLoading(true);
     try {
-      // TODO: Add your file processing logic here
-      // For now, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const formData = new FormData();
+      formData.append('file', files[0]);
+
+      const response = await fetch('http://localhost:8000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to upload file');
+      }
+
+      const data = await response.json();
       
-      // Navigate to chat page with the file name
-      const fileName = encodeURIComponent(files[0].name);
-      router.push(`/chat?file=${fileName}`);
+      // Navigate to chat page with the document ID
+      router.push(`/chat?docId=${encodeURIComponent(data.document_id)}`);
     } catch (error) {
-      toast.error("Failed to process the file. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to upload the file. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +106,7 @@ export default function UploadPage() {
           >
             <div className="text-black">Drag and drop files here</div>
             <div className="text-sm text-gray-600">
-              {"(PDFs and DOCXs only)"}
+              {"(PDFs and images only)"}
             </div>
           </motion.div>
         )}
@@ -109,7 +122,7 @@ export default function UploadPage() {
               </h1>
             </div>
             <CardDescription className="text-base text-black">
-              Upload a PDF or a Word document and ask me anything about it.
+              Upload a PDF or an image file and ask me anything about it.
             </CardDescription>
           </div>
         </CardHeader>
@@ -121,7 +134,7 @@ export default function UploadPage() {
               <input
                 type="file"
                 onChange={handleFileChange}
-                accept=".pdf,.docx"
+                accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp"
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
               <FileUp className="h-8 w-8 mb-2 text-muted-foreground" />

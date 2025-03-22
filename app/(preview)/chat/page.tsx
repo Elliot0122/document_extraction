@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,7 +18,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string>("");
 
@@ -36,29 +37,39 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSubmitMessage = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!input.trim()) return;
 
-    const newMessage: Message = {
-      role: 'user',
-      content: inputMessage
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setInputMessage("");
+    const userMessage = input.trim();
+    setInput("");
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
 
-    // TODO: Add API call to get bot response
-    // For now, we'll just simulate a response
-    setTimeout(() => {
-      const botResponse: Message = {
-        role: 'assistant',
-        content: "This is a simulated response. You'll need to integrate with your AI API here."
-      };
-      setMessages(prev => [...prev, botResponse]);
+    try {
+      const response = await fetch('http://localhost:8000/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: userMessage,
+          document_id: searchParams.get('docId'),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to get response');
+      }
+
+      const data = await response.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to get response. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -149,17 +160,17 @@ export default function ChatPage() {
       {/* Chat Input */}
       <div className="border-t bg-white/80 backdrop-blur-sm sticky bottom-0">
         <div className="max-w-4xl mx-auto p-4">
-          <form onSubmit={handleSubmitMessage} className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
               className="flex-1 rounded-full border-gray-200 focus:border-[#0066FF] focus:ring-[#0066FF] text-gray-900 placeholder:text-gray-400"
             />
             <Button
               type="submit"
               className="rounded-full !bg-[#0066FF] hover:!bg-[#0052CC] text-white shadow-sm"
-              disabled={isLoading || !inputMessage.trim()}
+              disabled={isLoading || !input.trim()}
             >
               <Send className="h-4 w-4" />
             </Button>
