@@ -8,8 +8,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/upload',
+        destination: 'http://3.143.227.59:8000/upload/',
+      },
+      {
         source: '/api/chat',
-        destination: 'http://localhost:8000/ask',
+        destination: 'http://3.143.227.59:8000/query/',
       },
     ];
   },

@@ -46,18 +46,15 @@ export default function ChatContent() {
       const docId = searchParams.get('docId');
       console.log('Document ID:', docId);
       
-      const formData = new FormData();
-      formData.append('file_id', docId || '');
-      formData.append('user_query', userMessage);
-
-      console.log('Sending query request with:', {
-        file_id: docId,
-        user_query: userMessage
-      });
-
-      const response = await fetch('http://3.143.227.59:8000/query/', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          document_id: docId,
+          query: userMessage
+        })
       });
 
       if (!response.ok) {
