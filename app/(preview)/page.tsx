@@ -14,6 +14,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
+const ALLOWED_FILE_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/tiff",
+  "image/bmp"
+] as const;
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function UploadPage() {
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
@@ -33,12 +43,8 @@ export default function UploadPage() {
     const selectedFiles = Array.from(e.target.files || []);
     const validFiles = selectedFiles.filter(
       (file) => 
-        (file.type === "application/pdf" || 
-         file.type === "image/png" ||
-         file.type === "image/jpeg" ||
-         file.type === "image/tiff" ||
-         file.type === "image/bmp") && 
-        file.size <= 5 * 1024 * 1024,
+        ALLOWED_FILE_TYPES.includes(file.type as typeof ALLOWED_FILE_TYPES[number]) && 
+        file.size <= MAX_FILE_SIZE,
     );
 
     if (validFiles.length !== selectedFiles.length) {
@@ -57,7 +63,7 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append('file', files[0]);
 
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch('http://3.143.227.59:8000/upload/', {
         method: 'POST',
         body: formData,
       });
@@ -68,9 +74,10 @@ export default function UploadPage() {
       }
 
       const data = await response.json();
+      console.log('Upload response:', data);
       
       // Navigate to chat page with the document ID
-      router.push(`/chat?docId=${encodeURIComponent(data.document_id)}`);
+      router.push(`/chat?docId=${encodeURIComponent(data.file_id)}&file=${encodeURIComponent(files[0].name)}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to upload the file. Please try again.");
     } finally {

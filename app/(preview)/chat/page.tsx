@@ -20,14 +20,10 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
-
-  useEffect(() => {
+  const [fileName, setFileName] = useState<string>(() => {
     const file = searchParams.get('file');
-    if (file) {
-      setFileName(decodeURIComponent(file));
-    }
-  }, [searchParams]);
+    return file ? decodeURIComponent(file) : "";
+  });
 
   useEffect(() => {
     scrollToBottom();
@@ -47,19 +43,26 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const docId = searchParams.get('docId');
+      console.log('Document ID:', docId);
+      
+      const formData = new FormData();
+      formData.append('file_id', docId || '');
+      formData.append('user_query', userMessage);
+
+      console.log('Sending query request with:', {
+        file_id: docId,
+        user_query: userMessage
+      });
+
+      const response = await fetch('http://3.143.227.59:8000/query/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: userMessage,
-          document_id: searchParams.get('docId'),
-        }),
+        body: formData
       });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Query error:', error);
         throw new Error(error.detail || 'Failed to get response');
       }
 
