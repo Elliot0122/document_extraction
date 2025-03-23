@@ -8,7 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests; connect-src 'self' http://3.143.227.59:8000" />
+        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
