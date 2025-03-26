@@ -75,8 +75,8 @@ export default function UploadPage() {
       const data = await response.json();
       console.log('Upload response:', data);
       
-      // Navigate to chat page with the document ID
-      router.push(`/chat?docId=${encodeURIComponent(data.file_id)}&file=${encodeURIComponent(files[0].name)}`);
+      // Navigate to query page with the document ID
+      router.push(`/query?docId=${encodeURIComponent(data.file_id)}&file=${encodeURIComponent(files[0].name)}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to upload the file. Please try again.");
     } finally {

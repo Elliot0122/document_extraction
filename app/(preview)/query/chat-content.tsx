@@ -46,7 +46,7 @@ export default function ChatContent() {
       const docId = searchParams.get('docId');
       console.log('Document ID:', docId);
       
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
