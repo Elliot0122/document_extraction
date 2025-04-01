@@ -4,7 +4,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     
-    const response = await fetch('http://3.143.227.59:8000/upload/', {
+    const response = await fetch('https://lm6ho2elrl.execute-api.us-east-2.amazonaws.com/upload/', {
       method: 'POST',
       body: formData
     });

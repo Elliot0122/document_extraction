@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     formData.append('file_id', body.document_id);
     formData.append('user_query', body.query);
     
-    const response = await fetch('http://3.143.227.59:8000/query/', {
+    const response = await fetch('https://lm6ho2elrl.execute-api.us-east-2.amazonaws.com/query/', {
       method: 'POST',
       body: formData
     });
