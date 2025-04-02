@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, FileUp, MessageSquare } from "lucide-react";
+import { Send, Loader2, FileUp, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  image?: string | null;
 }
 
 export default function ChatContent() {
@@ -20,6 +22,7 @@ export default function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>(() => {
     const file = searchParams.get('file');
     return file ? decodeURIComponent(file) : "";
@@ -64,8 +67,21 @@ export default function ChatContent() {
       }
 
       const data = await response.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+      console.log('Response data:', data);
+      console.log('Image data:', data.image);
+      console.log('Answer:', data.answer);
+
+      setMessages((prev) => {
+        const newMessage: Message = { 
+          role: "assistant", 
+          content: data.answer,
+          image: data.image ? `data:${data.image.content_type};base64,${data.image.content}` : null
+        };
+        console.log('New message object:', newMessage);
+        return [...prev, newMessage];
+      });
     } catch (error) {
+      console.error('Full error:', error);
       toast.error(error instanceof Error ? error.message : "Failed to get response. Please try again.");
     } finally {
       setIsLoading(false);
@@ -129,8 +145,23 @@ export default function ChatContent() {
                         <MessageSquare className="h-4 w-4 text-[#0066FF]" />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 space-y-2">
                       <p className="text-sm break-words whitespace-pre-wrap overflow-hidden">{message.content}</p>
+                      {message.image && message.image !== "" && (
+                        <div 
+                          className="mt-2 cursor-pointer"
+                          onClick={() => message.image ? setSelectedImage(message.image) : null}
+                        >
+                          <Image
+                            src={message.image}
+                            alt="Response image"
+                            width={300}
+                            height={200}
+                            className="rounded-lg object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -156,6 +187,33 @@ export default function ChatContent() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Image Modal */}
+      {selectedImage && selectedImage !== "" && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-4xl w-full">
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 border-0"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <Image
+              src={selectedImage}
+              alt="Enlarged image"
+              width={1200}
+              height={800}
+              className="w-full h-auto rounded-lg"
+              unoptimized
+            />
+          </div>
+        </div>
+      )}
 
       {/* Chat Input */}
       <div className="border-t bg-white/80 backdrop-blur-sm sticky bottom-0">
